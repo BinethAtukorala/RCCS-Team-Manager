@@ -1,0 +1,1 @@
+# Team Manager Bot for RCCS Community Discord Server
