@@ -25,3 +25,4 @@ def cursor_to_list(cursor: pymongo.collection.Cursor, properties: [str]):
             v2.append(x[c_property])
 
         v.append(v2)
+    return v
