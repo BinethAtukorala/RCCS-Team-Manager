@@ -18,11 +18,11 @@ def cursor_to_list(cursor: pymongo.collection.Cursor, properties: [str]):
     :parameter properties: should be a array of string indexes
     """
 
-    v = []
+    v = []  # stores packs of property values
     for x in cursor:
         v2 = []
         for c_property in properties:
-            v2.append(x[c_property])
+            v2.append(x[c_property])  # this appends the properties to the array for example: ["first pro val", 2, 20]
 
         v.append(v2)
     return v
