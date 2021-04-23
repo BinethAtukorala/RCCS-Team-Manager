@@ -1,7 +1,7 @@
 import pymongo
 
 
-def format_todo(all_todos: pymongo.collection.Cursor) -> str:
+def format_todo(all_todos: list) -> str:
     todo_list = ""
     i = 1
     # Format the todos for discord
@@ -11,18 +11,13 @@ def format_todo(all_todos: pymongo.collection.Cursor) -> str:
     return todo_list
 
 
-def cursor_to_list(cursor: pymongo.collection.Cursor, properties: [str]):
+def cursor_to_list(cursor: pymongo.collection.Cursor):
     """
     converts cursor to list.
 
-    :parameter properties: should be a array of string indexes
     """
 
-    v = []  # stores packs of property values
+    v = []  # Output list
     for x in cursor:
-        v2 = []
-        for c_property in properties:
-            v2.append(x[c_property])  # this appends the properties to the array for example: ["first pro val", 2, 20]
-
-        v.append(v2)
+        v.append(x)
     return v
