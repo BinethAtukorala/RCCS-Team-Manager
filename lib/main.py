@@ -207,15 +207,14 @@ async def addTodo(ctx, *members_str):
         subtasks_text+=f"{x}, "
     subtasks_text = subtasks_text[:-2]
 
-    messageSent = await ctx.send(f"""Are the following details correct?
+    message = "Are the following details correct?\n"
+    message += f"\n:white_small_square: Title - {title}"
+    message += f"\n:white_small_square: Title - {description}"
+    message += f"\n:white_small_square: Title - {deadline.strftime('%d/%m/%Y')}"
+    message += f"\n:white_small_square: Title - {members_text}"
+    message += f"\n:white_small_square: Title - {subtasks_text}"
 
-:white_small_square: Title - {title}
-:white_small_square: Description - {description}
-:white_small_square: Project - {project}
-:white_small_square: Deadline - {deadline.strftime("%d/%m/%Y")}
-:white_small_square: Members - {members_text}
-:white_small_square: Subtasks - {subtasks_text}
-    """)
+    messageSent = await ctx.send(message)
 
     await messageSent.add_reaction("✅")
     await messageSent.add_reaction("❌")
