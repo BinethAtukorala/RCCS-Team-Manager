@@ -1,0 +1,22 @@
+ERROR:root:File "config.json" not found!
+ERROR:root:File "config.json" not found!
+WARNING:root:Key "prefix" not set in config.json. Using default prefix "~"
+WARNING:discord.client:PyNaCl is not installed, voice will NOT be supported
+INFO:discord.client:logging in using static token
+INFO:discord.gateway:Shard ID None has sent the IDENTIFY payload.
+INFO:discord.gateway:Shard ID None has connected to Gateway: ["gateway-prd-main-thg9",{"micros":66518,"calls":["discord-sessions-prd-2-122",{"micros":63369,"calls":["start_session",{"micros":58036,"calls":["api-prd-main-c1w5",{"micros":54877,"calls":["get_user",{"micros":4415},"add_authorized_ip",{"micros":5879},"get_guilds",{"micros":12283},"coros_wait",{"micros":0}]}]},"guilds_connect",{"micros":1,"calls":[]},"presence_connect",{"micros":34,"calls":[]}]}]}] (Session ID: 35840810db64196a89d2a2a3f1c760b4).
+INFO:discord.client:Received signal to terminate bot and event loop.
+INFO:discord.client:Cleaning up tasks.
+INFO:discord.client:Cleaning up after 3 tasks.
+INFO:discord.client:All tasks finished cancelling.
+INFO:discord.client:Closing the event loop.
+WARNING:root:Key "prefix" not set in config.json. Using default prefix "~"
+WARNING:discord.client:PyNaCl is not installed, voice will NOT be supported
+INFO:discord.client:logging in using static token
+INFO:discord.gateway:Shard ID None has sent the IDENTIFY payload.
+INFO:discord.gateway:Shard ID None has connected to Gateway: ["gateway-prd-main-53pn",{"micros":81424,"calls":["discord-sessions-prd-2-27",{"micros":75128,"calls":["start_session",{"micros":32918,"calls":["api-prd-main-pv22",{"micros":29805,"calls":["get_user",{"micros":3198},"add_authorized_ip",{"micros":1910},"get_guilds",{"micros":5425},"coros_wait",{"micros":0}]}]},"guilds_connect",{"micros":1,"calls":[]},"presence_connect",{"micros":37668,"calls":[]}]}]}] (Session ID: b72ec9ece84571399af84dabd7719809).
+INFO:discord.client:Received signal to terminate bot and event loop.
+INFO:discord.client:Cleaning up tasks.
+INFO:discord.client:Cleaning up after 3 tasks.
+INFO:discord.client:All tasks finished cancelling.
+INFO:discord.client:Closing the event loop.

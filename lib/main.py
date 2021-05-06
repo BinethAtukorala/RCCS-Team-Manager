@@ -17,19 +17,24 @@ mydb = myClient["rccs"]
 if "rccs" in myClient.list_database_names():
     mydb = myClient["rccs"]
 else:
-    print('Database by name "rccs" not found')
-    exit
+    utils.err('Database by name "rccs" not found')
 
 todoCol = mydb["todo"]
 
 # -------- Discord inits
 
-TOKEN = ""
+discord_config = utils.get_config()["discord"]
 
-with open("token", "r") as file:
-    TOKEN = file.read()
+if("token" in discord_config):
+    TOKEN = discord_config["token"]
+else:
+    utils.err("Key \"token\" not found in config.json")
 
-bot = commands.Bot(command_prefix="~")
+if("prefix" in discord_config):
+    bot = commands.Bot(command_prefix=discord_config["prefix"])
+else:
+    utils.warn("Key \"prefix\" not set in config.json. Using default prefix \"~\"")
+    bot = commands.Bot(command_prefix="~")
 
 # =========== Commands ==============
 
@@ -190,13 +195,13 @@ async def addTodo(ctx, *members_str):
 
     messageSent = await ctx.send(f"""Are the following details correct?
 
-:white_small_square: Title - {title}
-:white_small_square: Description - {description}
-:white_small_square: Project - {project}
-:white_small_square: Deadline - {deadline.strftime("%d/%m/%Y")}
-:white_small_square: Members - {members_text}
-:white_small_square: Subtasks - {subtasks_text}
-""")
+    :white_small_square: Title - {title}
+    :white_small_square: Description - {description}
+    :white_small_square: Project - {project}
+    :white_small_square: Deadline - {deadline.strftime("%d/%m/%Y")}
+    :white_small_square: Members - {members_text}
+    :white_small_square: Subtasks - {subtasks_text}
+    """)
 
     await messageSent.add_reaction("✅")
     await messageSent.add_reaction("❌")
