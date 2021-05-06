@@ -4,7 +4,14 @@ import pymongo, re, sys, json, logging
 from datetime import datetime
 
 # Configure logging
-logging.basicConfig(filename="logs.log", level=logging.INFO)
+
+LOG_FILE = "logs.log"
+
+with open(LOG_FILE, 'w') as file:
+    file.writelines(f"RCCS Team Manager Bot - {str(datetime.now())}\n\n==============================\n\n")
+
+logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
+
 
 def err(message: str):
     """
@@ -31,6 +38,23 @@ def get_config():
         return json.loads(data)
     except FileNotFoundError:
         err("File \"config.json\" not found!")
+
+def get_discord_config(): 
+    """
+    Return TOKEN, BOT_PREFIX from utils.get_config()
+    """
+    discord_configs = get_config()["discord"]
+    if("token" not in discord_configs):
+        err("Key \"token\" not found in config.json.")
+        sys.exit(-1)
+    token = discord_configs["token"]
+    if("prefix" in discord_configs):
+        prefix = discord_configs['prefix']
+    else:
+        prefix = "~"
+        warn("Key \"prefix\" not found in config.json. Using default prefix \"prefix\".")
+    return token, prefix
+    
 
 def format_todo(todo: dict) -> str:
     """
@@ -62,7 +86,8 @@ def format_todo(todo: dict) -> str:
     subtasks_string = "\n\n:white_small_square: Subtasks"
     for subtask in subtasks:
         emoji = ":white_check_mark:" if subtask['completed'] else ":x:"
-        subtasks_string += f"\n\t:small_orange_diamond: {subtask['title']}:\t{emoji}"
+        if(subtask['completed'] == False):
+            subtasks_string += f"\n\t:small_orange_diamond: {subtask['title']}"
     todo_string += subtasks_string
 
 #     todo_string = (f"""
@@ -84,7 +109,7 @@ def format_todolist(all_todos: list) -> str:
     i = 1
     # Format the todos for discord
     for x in all_todos:
-        todo_list += f"\n**{i}.** {x['title']} - `{x['deadline']}`"
+        todo_list += f"\n**{i}.** {x['title']} - `{x['deadline'].strftime('%d/%m/%Y')}`"
         i += 1
     return todo_list
 

@@ -25,16 +25,9 @@ todoCol = mydb["todo"]
 
 discord_config = utils.get_config()["discord"]
 
-if("token" in discord_config):
-    TOKEN = discord_config["token"]
-else:
-    utils.err("Key \"token\" not found in config.json")
-
-if("prefix" in discord_config):
-    bot = commands.Bot(command_prefix=discord_config["prefix"])
-else:
-    utils.warn("Key \"prefix\" not set in config.json. Using default prefix \"~\"")
-    bot = commands.Bot(command_prefix="~")
+TOKEN, BOT_PREFIX = utils.get_discord_config()
+    
+bot = commands.Bot( command_prefix = BOT_PREFIX )
 
 # =========== Commands ==============
 
