@@ -68,6 +68,7 @@ def get_mongo_config():
     except errors.ServerSelectionTimeoutError as e:
         err(f"MongoDB server timed out. url: {url}")
 
+    # Check whether the db exists in the server
     if db in myClient.list_database_names():
         mydb = myClient[db]
     else:
@@ -112,7 +113,7 @@ def format_todo(todo: dict) -> str:
     todo_string += f"\n:white_small_square: Description - {todo['description']}"
 
     # Project
-    todo_string += f"\n:white_small_square: Description - {todo['project']}"
+    todo_string += f"\n:white_small_square: Project - {todo['project']}"
 
     # Deadline
     todo_string += f"\n:white_small_square: Deadline - {todo['deadline'].strftime('%d/%m/%Y')}"   
@@ -122,6 +123,8 @@ def format_todo(todo: dict) -> str:
     members_string = ""
     for member in members:
         members_string += member + ", "
+    
+    # Remove the trailing end ", "
     members_string = members_string[:-2]
     todo_string += f"\n:white_small_square: Members - {members_string}"
 
@@ -165,6 +168,9 @@ def add_todo(
     creator: int, 
     members: list, 
     subtasks: list):
+    """
+    Create and add a todo document in the mongodb collection.
+    """
 
     subtasksDictArray = []
     for x in subtasks:
@@ -179,6 +185,7 @@ def add_todo(
         "project": project,
         "deadline": deadline,
         "creator": creator,
+        "completed": False,
         "members": membersDictArray,
         "subtasks": subtasksDictArray
     }
@@ -186,7 +193,18 @@ def add_todo(
     todoCol.insert_one(newTodoDocument)
     print(newTodoDocument)
 
+def complete_todo(id: ObjectId, user: discord.User):
+    """
+    Mark a todo document as completed
+    """
+
+    todoCol.update_one({"_id": id}, {"$set" : {"completed": True, "completed_by": user.id}})
+
+
 def get_todos(filter: dict = {}) -> list:
+    """
+    Get documents from the todo collection which matches the filter given.
+    """
     return cursor_to_list(todoCol.find(filter))
 
 def cursor_to_list(cursor: pymongo.collection.Cursor):

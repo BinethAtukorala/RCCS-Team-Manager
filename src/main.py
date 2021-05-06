@@ -19,10 +19,18 @@ bot = commands.Bot( command_prefix = BOT_PREFIX )
 
 # =========== Commands ==============
 
+@bot.event
+async def on_ready():
+    print("Connected to servers: ")
+    guilds = await bot.fetch_guilds(limit=100).flatten()
+    for guild in guilds:
+        print(guild.name)
+    await bot.change_presence(status=discord.Status.online, activity=discord.Game("Todo Crunch"))
+
 # List all todos in the database
 @bot.command(name='listall')
 async def listAllTodos(ctx):
-    allTodos = utils.get_todos()
+    allTodos = utils.get_todos({"completed": False})
 
     #Check if any todos exists
     if(len(allTodos) > 0):
@@ -42,7 +50,7 @@ async def listTodos(ctx, index=0):
     creator = ctx.message.author.id
 
     # Todos assigned to the author
-    allTodos = utils.cursor_to_list(utils.get_todos({"members": creator}))
+    allTodos = utils.cursor_to_list(utils.get_todos({"members": creator, "completed": False}))
 
     # Respond with the info of a specific todo if an index is given
     if(index > 0 and len(allTodos) >= index):
@@ -57,6 +65,22 @@ async def listTodos(ctx, index=0):
         todo['members'] = members
         
         response = utils.format_todo(todo)
+
+        messageSent = await ctx.send(response)
+
+        await messageSent.add_reaction("✅")
+
+        def checkReaction(reaction, user):
+            return user == ctx.message.author and (str(reaction.emoji) == "✅")
+        
+        try:
+            reaction, user = await bot.wait_for('reaction_add', check=checkReaction, timeout=20)
+            if(str(reaction.emoji) == "✅"):
+                utils.complete_todo(todo["_id"], user)
+                await ctx.send("✅ Marked as completed!")
+        except asyncio.TimeoutError:
+            await messageSent.remove_reaction("✅", bot.user)
+
     
     # List all todos if no index is given
     else:
@@ -71,7 +95,7 @@ async def listTodos(ctx, index=0):
             response = "No upcoming todos for you. Yayy"
 
         # Todos created by author
-        allTodos = utils.cursor_to_list(utils.get_todos({"creator": creator}))
+        allTodos = utils.cursor_to_list(utils.get_todos({"creator": creator, "completed": False}))
 
         # Check if any exista
         if(len(allTodos) > 0):
@@ -81,8 +105,7 @@ async def listTodos(ctx, index=0):
 
             response+= "\n\n**Todos created by you** {0}\n{1}".format(ctx.message.author.mention, todoList)
 
-    if(response != ""):
-        await ctx.send(response)
+            await ctx.send(response)
 
 # Create new todo
 @bot.command(name='add')
@@ -170,7 +193,7 @@ async def addTodo(ctx, *members_str):
 
     members_text = ""
     if(len(members) > 0):
-        for x in members:
+        for x in members:   
             members_text+=f"{x}, "
         members_text = members_text[:-2]
     members_text = "not given."
