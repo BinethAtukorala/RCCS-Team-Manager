@@ -40,7 +40,7 @@ else:
 
 # List all todos in the database
 @bot.command(name='listall')
-async def listTodos(ctx):
+async def listAllTodos(ctx):
     allTodos = utils.cursor_to_list(todoCol.find())
 
     #Check if any todos exists
@@ -63,9 +63,21 @@ async def listTodos(ctx, index=0):
     # Todos assigned to the author
     allTodos = utils.cursor_to_list(todoCol.find({"members": creator}))
 
-    if(index > 0):
-        response = allTodos[index]
+    # Respond with the info of a specific todo if an index is given
+    if(index > 0 and len(allTodos) >= index):
+        response = ""
 
+        todo = allTodos[index-1]
+        
+        members = []
+        for x in todo['members']:
+            user = await bot.fetch_user(x)
+            members.append(user.name + "#" + user.discriminator)
+        todo['members'] = members
+        
+        response = utils.format_todo(todo)
+    
+    # List all todos if no index is given
     else:
         # Check if any exist
         if(len(allTodos) > 0):
@@ -88,8 +100,8 @@ async def listTodos(ctx, index=0):
 
             response+= "\n\n**Todos created by you** {0}\n{1}".format(ctx.message.author.mention, todoList)
 
-
-    await ctx.send(response)
+    if(response != ""):
+        await ctx.send(response)
 
 # Create new todo
 @bot.command(name='add')
@@ -171,11 +183,13 @@ async def addTodo(ctx, *members_str):
         await ctx.send("Sorry, you took too long to reply")
 
     members_text = ""
-    for x in members:
-        members_text+=f"{x}, "
-    members_text = members_text[:-2]
+    if(len(members) > 0):
+        for x in members:
+            members_text+=f"{x}, "
+        members_text = members_text[:-2]
+    members_text = "not given."
 
-    await ctx.send(f":white_check_mark: Members are `{members_text}`\n\n:grey_question: Please list out subtasks of the todo in each line. (optional)")
+    await ctx.send(f":white_check_mark: Members are {members_text}\n\n:grey_question: Please list out subtasks of the todo in each line. (optional)")
     subtasks = []
     # Wait for reply and exit if it's 'cancel'
     try:
@@ -195,12 +209,12 @@ async def addTodo(ctx, *members_str):
 
     messageSent = await ctx.send(f"""Are the following details correct?
 
-    :white_small_square: Title - {title}
-    :white_small_square: Description - {description}
-    :white_small_square: Project - {project}
-    :white_small_square: Deadline - {deadline.strftime("%d/%m/%Y")}
-    :white_small_square: Members - {members_text}
-    :white_small_square: Subtasks - {subtasks_text}
+:white_small_square: Title - {title}
+:white_small_square: Description - {description}
+:white_small_square: Project - {project}
+:white_small_square: Deadline - {deadline.strftime("%d/%m/%Y")}
+:white_small_square: Members - {members_text}
+:white_small_square: Subtasks - {subtasks_text}
     """)
 
     await messageSent.add_reaction("✅")
