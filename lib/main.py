@@ -7,23 +7,11 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 
 import utils
+
 import asyncio
 from datetime import datetime
 
-# -------- MongoDB inits
-myClient = MongoClient('mongodb://localhost:27017')
-mydb = myClient["rccs"]
-
-if "rccs" in myClient.list_database_names():
-    mydb = myClient["rccs"]
-else:
-    utils.err('Database by name "rccs" not found')
-
-todoCol = mydb["todo"]
-
 # -------- Discord inits
-
-discord_config = utils.get_config()["discord"]
 
 TOKEN, BOT_PREFIX = utils.get_discord_config()
     
@@ -34,7 +22,7 @@ bot = commands.Bot( command_prefix = BOT_PREFIX )
 # List all todos in the database
 @bot.command(name='listall')
 async def listAllTodos(ctx):
-    allTodos = utils.cursor_to_list(todoCol.find())
+    allTodos = utils.get_todos()
 
     #Check if any todos exists
     if(len(allTodos) > 0):
@@ -54,7 +42,7 @@ async def listTodos(ctx, index=0):
     creator = ctx.message.author.id
 
     # Todos assigned to the author
-    allTodos = utils.cursor_to_list(todoCol.find({"members": creator}))
+    allTodos = utils.cursor_to_list(utils.get_todos({"members": creator}))
 
     # Respond with the info of a specific todo if an index is given
     if(index > 0 and len(allTodos) >= index):
@@ -83,7 +71,7 @@ async def listTodos(ctx, index=0):
             response = "No upcoming todos for you. Yayy"
 
         # Todos created by author
-        allTodos = utils.cursor_to_list(todoCol.find({"creator": creator}))
+        allTodos = utils.cursor_to_list(utils.get_todos({"creator": creator}))
 
         # Check if any exista
         if(len(allTodos) > 0):
@@ -227,28 +215,11 @@ async def addTodo(ctx, *members_str):
         await ctx.send("Sorry, you took too long to react.")
     
     if(str(reaction.emoji) == "✅"):
+
+        utils.add_todo(title, description, project, deadline, creator, members, subtasks)
+
         await ctx.send(":white_check_mark: Done, Todo Created")
-
-        subtasksDictArray = []
-        for x in subtasks:
-            subtasksDictArray.append({"title":x, "completed": False})
-        membersDictArray = []
-        for x in members:
-            membersDictArray.append(x.id)
-
-        newTodoDocument = {
-            "title": title,
-            "description": description,
-            "project": project,
-            "deadline": deadline,
-            "creator": creator,
-            "members": membersDictArray,
-            "subtasks": subtasksDictArray
-        }
-
-        todoCol.insert_one(newTodoDocument)
-
-        print(f"Todo confirmed: {newTodoDocument}")
+        
     else:
         await ctx.send("Todo Rejected. :x:")
         print("Todo rejected")

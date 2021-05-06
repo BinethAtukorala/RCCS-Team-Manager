@@ -1,14 +1,18 @@
 name = "utils"
 
-import pymongo, re, sys, json, logging
-from datetime import datetime
+import pymongo, re, sys, json, logging, discord
+import datetime
 
-# Configure logging
+# -------- MongoDB Imports
+from pymongo import MongoClient, errors
+from bson.objectid import ObjectId
+
+# -------- Configure logging
 
 LOG_FILE = "logs.log"
 
 with open(LOG_FILE, 'w') as file:
-    file.writelines(f"RCCS Team Manager Bot - {str(datetime.now())}\n\n==============================\n\n")
+    file.writelines(f"RCCS Team Manager Bot - {str(datetime.datetime.now())}\n\n==============================\n\n")
 
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
 
@@ -28,6 +32,13 @@ def warn(message: str):
     print("Warning:", message)
     logging.warning(message)
 
+def info(message: str):
+    """
+    Print and log info message
+    """
+    print("Info:", message)
+    logging.info(message)
+
 def get_config():
     """
     Read /config.json and return it's content as a dictionary
@@ -39,11 +50,44 @@ def get_config():
     except FileNotFoundError:
         err("File \"config.json\" not found!")
 
+def get_mongo_config():
+    """
+    Return todoCol
+    """
+    config = get_config()
+    if("mongo" in config):
+        mongo_configs = config["mongo"]
+    else:
+        err("Field \"mongo\" not found in config.json")
+    
+    url = mongo_configs["url"]
+    db = mongo_configs["db"]
+
+    try:
+        myClient = MongoClient(url, serverSelectionTimeoutMS=10000)
+    except errors.ServerSelectionTimeoutError as e:
+        err(f"MongoDB server timed out. url: {url}")
+
+    if db in myClient.list_database_names():
+        mydb = myClient[db]
+    else:
+        err(f'Database by name "{db}" not found')
+    
+    return mydb["todo"]
+
+# -------- MongoDB inits
+
+todoCol = get_mongo_config()    
+
 def get_discord_config(): 
     """
     Return TOKEN, BOT_PREFIX from utils.get_config()
     """
-    discord_configs = get_config()["discord"]
+    config = get_config()
+    if("discord" in config):
+        discord_configs = config["discord"]
+    else:
+        err("Field \"discord\" not found in config.json")
     if("token" not in discord_configs):
         err("Key \"token\" not found in config.json.")
         sys.exit(-1)
@@ -113,6 +157,37 @@ def format_todolist(all_todos: list) -> str:
         i += 1
     return todo_list
 
+def add_todo(
+    title: str, 
+    description: str, 
+    project: str, 
+    deadline: datetime.datetime, 
+    creator: int, 
+    members: list, 
+    subtasks: list):
+
+    subtasksDictArray = []
+    for x in subtasks:
+        subtasksDictArray.append({"title": x, "completed": False, "time": None, "user": None})
+    membersDictArray = []
+    for x in members:
+        membersDictArray.append(x.id)
+
+    newTodoDocument = {
+        "title": title,
+        "description": description,
+        "project": project,
+        "deadline": deadline,
+        "creator": creator,
+        "members": membersDictArray,
+        "subtasks": subtasksDictArray
+    }
+
+    todoCol.insert_one(newTodoDocument)
+    print(newTodoDocument)
+
+def get_todos(filter: dict = {}) -> list:
+    return cursor_to_list(todoCol.find(filter))
 
 def cursor_to_list(cursor: pymongo.collection.Cursor):
     """
@@ -132,7 +207,7 @@ def is_a_date(string: str) -> bool:
     date_re = re.compile(r"\d\d/\d\d/\d\d\d\d")
     if(date_re.match(string) != None):
         try:
-            date = deadline = datetime.strptime(string, "%d/%m/%Y")
+            date = deadline = datetime.datetime.strptime(string, "%d/%m/%Y")
         except ValueError:
             return False
         else:
