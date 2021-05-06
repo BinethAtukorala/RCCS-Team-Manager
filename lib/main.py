@@ -236,34 +236,6 @@ async def addTodo(ctx, *members_str):
         await ctx.send("Todo Rejected. :x:")
         print("Todo rejected")
 
-    # response = "You mentioned,"
-    # members = []
-    # if(len(members_str) > 0):
-    #     for member in members_str:
-    #         members.append(await bot.fetch_user(member[3:-1]))
-    #     for member in members:
-    #         response += f"\n{member.id}"
-    # else:
-    #     response += " no one."
-    # await ctx.send(response)
-
-# Test a feature
-@bot.command(name="test")
-async def testing(ctx):
-    await ctx.send("Please mention some people")
-    def check(reaction, user):
-        return user == ctx.message.author
-    reaction, user = await bot.wait_for('reaction_add', check=check, timeout=20)
-    print(str(reaction))
-
-# Call someone (For fun)
-@bot.command(name="call")
-async def call(ctx, user: discord.Member = None):
-    if user:
-        await ctx.send(f"Pss pss, {user.mention}")
-    else:
-        await ctx.send("Who you wanna call?")
-
 # -------- Run the goddamn bot
 
 print("## Starting Bot ##")
