@@ -196,10 +196,10 @@ async def addTodo(ctx, *members_str):
 
     message = "Are the following details correct?\n"
     message += f"\n:white_small_square: Title - {title}"
-    message += f"\n:white_small_square: Title - {description}"
-    message += f"\n:white_small_square: Title - {deadline.strftime('%d/%m/%Y')}"
-    message += f"\n:white_small_square: Title - {members_text}"
-    message += f"\n:white_small_square: Title - {subtasks_text}"
+    message += f"\n:white_small_square: Description - {description}"
+    message += f"\n:white_small_square: Deadline - {deadline.strftime('%d/%m/%Y')}"
+    message += f"\n:white_small_square: Members - {members_text}"
+    message += f"\n:white_small_square: Subtasks - {subtasks_text}"
 
     messageSent = await ctx.send(message)
 
