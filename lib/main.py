@@ -119,6 +119,7 @@ async def addTodo(ctx, *members_str):
     try:
         reply = (await bot.wait_for('message', check=check, timeout=60.0)).content
         if(reply.lower() == "cancel"):
+            await ctx.send(":no_entry: Canceled!")
             return
         title = reply
     except asyncio.TimeoutError:
@@ -131,6 +132,7 @@ async def addTodo(ctx, *members_str):
     try:
         reply = (await bot.wait_for('message', check=check, timeout=60.0)).content
         if(reply.lower() == "cancel"):
+            await ctx.send(":no_entry: Canceled!")
             return
         if(reply.lower() == "skip"):
             description = ""
@@ -146,6 +148,7 @@ async def addTodo(ctx, *members_str):
     try:
         reply = (await bot.wait_for('message', check=check, timeout=60.0)).content
         if(reply.lower() == "cancel"):
+            await ctx.send(":no_entry: Canceled!")
             return
         if(reply.lower() == "skip"):
             project = ""
@@ -164,6 +167,7 @@ async def addTodo(ctx, *members_str):
     try:
         reply = (await bot.wait_for('message', check=check_date, timeout=60.0)).content
         if(reply.lower() == "cancel"):
+            await ctx.send(":no_entry: Canceled!")
             return
         deadline = datetime.strptime(reply, "%d/%m/%Y")
     except asyncio.TimeoutError:
@@ -175,6 +179,7 @@ async def addTodo(ctx, *members_str):
     try:
         reply = (await bot.wait_for('message', check=check, timeout=60.0)).content
         if(reply.lower() == "cancel"):
+            await ctx.send(":no_entry: Canceled!")
             return
         if(reply.lower() != "skip"):
             for x in reply.split():
@@ -195,6 +200,7 @@ async def addTodo(ctx, *members_str):
     try:
         reply = (await bot.wait_for('message', check=check, timeout=60.0)).content
         if(reply.lower() == "cancel"):
+            await ctx.send(":no_entry: Canceled!")
             return
         if(reply.lower() != "skip"):
             for x in reply.split("\n"):
