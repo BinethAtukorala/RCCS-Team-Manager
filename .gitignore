@@ -1,4 +1,4 @@
 config.json
 logs.log
 env/
-lib/__pycache__
+src/__pycache__

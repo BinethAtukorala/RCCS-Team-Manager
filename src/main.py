@@ -25,7 +25,7 @@ async def on_ready():
     guilds = await bot.fetch_guilds(limit=100).flatten()
     for guild in guilds:
         print(guild.name)
-    await bot.change_presence(status=discord.Status.online, activity=discord.Game("Todo Crunch"))
+    await bot.change_presence(status=discord.Status.online, activity=discord.Game(":bookmark: Todo Crunch"))
 
 # List all todos in the database
 @bot.command(name='listall')
@@ -50,14 +50,20 @@ async def listTodos(ctx, index=0):
     creator = ctx.message.author.id
 
     # Todos assigned to the author
-    allTodos = utils.cursor_to_list(utils.get_todos({"members": creator, "completed": False}))
+    allTodosToAuthor = utils.cursor_to_list(utils.get_todos({"members": creator, "completed": False}))
+
+    #Todos created by author
+    allTodosByAuthor = utils.get_todos({"creator": creator, "completed": False, "members": {'$ne': creator} })
 
     # Respond with the info of a specific todo if an index is given
-    if(index > 0 and len(allTodos) >= index):
-        response = ""
+    if(index > 0 and (len(allTodosToAuthor) >= index or len(allTodosByAuthor) <= index)):
 
-        todo = allTodos[index-1]
-        
+        # Check which list does the index refer to
+        if(len(allTodosToAuthor) >= index):
+            todo = allTodosToAuthor[index-1]
+        elif(len(allTodosByAuthor) <= index):
+            todo = allTodosByAuthor[index-1]
+
         members = []
         for x in todo['members']:
             user = await bot.fetch_user(x)
@@ -84,28 +90,49 @@ async def listTodos(ctx, index=0):
     
     # List all todos if no index is given
     else:
+        i = 0
         # Check if any exist
-        if(len(allTodos) > 0):
-
-            # Format for discord
-            todoList = utils.format_todolist(allTodos)
-
-            response = "**Your upcoming todos**\n{0}".format(todoList)
-        else:
-            response = "No upcoming todos for you. Yayy"
-
-        # Todos created by author
-        allTodos = utils.cursor_to_list(utils.get_todos({"creator": creator, "completed": False}))
 
         # Check if any exista
-        if(len(allTodos) > 0):
+        if(len(allTodosByAuthor) > 0):
 
             # Format for discord
-            todoList = utils.format_todolist(allTodos)
+            todoList = utils.format_todolist(allTodosByAuthor)
 
-            response+= "\n\n**Todos created by you** {0}\n{1}".format(ctx.message.author.mention, todoList)
+            await ctx.send("**Todos assigned to others by you** {0}\n{1}\n\n".format(ctx.message.author.mention, todoList))
 
-            await ctx.send(response)
+        if(len(allTodosToAuthor) > 0):
+
+            await ctx.send("**\nYour upcoming todos\n**")
+
+            # Create coroutine to handle reactions of the messages, because otherwise the next message wouldn't be shown before the reaction check is done
+            async def message_task(i:int, todo: dict, message):
+                await message.add_reaction("✅")
+
+                def checkReaction(reaction, user):
+                    return user == ctx.message.author and (str(reaction.emoji) == "✅") and reaction.message == message
+                
+                try:
+                    reaction, user = await bot.wait_for('reaction_add', check=checkReaction, timeout=20)
+                    if(str(reaction.emoji) == "✅"):
+                        utils.complete_todo(todo["_id"], user)
+                        await ctx.send(f"✅ Marked as completed! - **{i}.** {todo['title']}")
+                except asyncio.TimeoutError:
+                    await message.remove_reaction("✅", bot.user)
+            # A list to store all coroutines
+            messages = list()
+            for todo in allTodosToAuthor:
+                i += 1
+                # Sending the message outside the coroutine to maintain message number ordering
+                message = await ctx.send(f"**{i}.** {todo['title']} - `{todo['deadline'].strftime('%d/%m/%Y')}`")
+                messages.append(message_task(i, todo, message))
+            # Wait for the reactions to be done
+            asyncio.run_coroutine_threadsafe(asyncio.wait(messages, return_when=asyncio.ALL_COMPLETED), asyncio.get_event_loop())
+
+        else:
+            await ctx.send("No upcoming todos for you. Yayy")
+
+        
 
 # Create new todo
 @bot.command(name='add')
@@ -119,7 +146,7 @@ async def addTodo(ctx, *members_str):
         return m.author == ctx.message.author
     
     # Wait for reply and exit if it's 'cancel'
-    # !!!! Code is too redundant
+    # TODO: Code is too redundant
     try:
         reply = (await bot.wait_for('message', check=check, timeout=60.0)).content
         if(reply.lower() == "cancel"):
@@ -216,7 +243,6 @@ async def addTodo(ctx, *members_str):
     for x in subtasks:
         subtasks_text+=f"{x}, "
     subtasks_text = subtasks_text[:-2]
-
     message = "Are the following details correct?\n"
     message += f"\n:white_small_square: Title - {title}"
     message += f"\n:white_small_square: Description - {description}"
