@@ -25,7 +25,7 @@ async def on_ready():
     guilds = await bot.fetch_guilds(limit=100).flatten()
     for guild in guilds:
         print(guild.name)
-    await bot.change_presence(status=discord.Status.online, activity=discord.Game(":bookmark: Todo Crunch"))
+    await bot.change_presence(status=discord.Status.online, activity=discord.Game("📑 Todo Crunch"))
 
 # List all todos in the database
 @bot.command(name='listall')
@@ -121,11 +121,25 @@ async def listTodos(ctx, index=0):
                     await message.remove_reaction("✅", bot.user)
             # A list to store all coroutines
             messages = list()
+
+            await ctx.send("╔══╦═══════════════════════╦═════════╗\n║ ID ║ **Title**                                                              ║ **Deadline**           ║\n╠══╬═══════════════════════╬═════════╣")
+
             for todo in allTodosToAuthor:
+                title = todo['title']
                 i += 1
+                if (len(title) > 38):
+                    title_text = title[:35] + "..."
+                else:
+                    title_text = title + " " * (68 - len(title))
+
+                id_str = str(i)
+                if (id_str[-1] == '1'):
+                    id_str += " "
+
                 # Sending the message outside the coroutine to maintain message number ordering
-                message = await ctx.send(f"**{i}.** {todo['title']} - `{todo['deadline'].strftime('%d/%m/%Y')}`")
+                message = await ctx.send(f"\n║ {'   ' if (i < 10) else '' }{id_str}║ {title_text} ║  {todo['deadline'].strftime('%d/%m/%Y')}   ║")
                 messages.append(message_task(i, todo, message))
+            await ctx.send("\n╚══╩═══════════════════════╩═════════╝")
             # Wait for the reactions to be done
             asyncio.run_coroutine_threadsafe(asyncio.wait(messages, return_when=asyncio.ALL_COMPLETED), asyncio.get_event_loop())
 

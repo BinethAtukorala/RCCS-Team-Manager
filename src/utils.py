@@ -152,12 +152,31 @@ def format_todolist(all_todos: list) -> str:
     """
     Format list object of todos.
     """
-    todo_list = ""
+
+    # ╔══╦═══════════════════════╦═════════╗
+    # ║ ID ║ Title                                                               ║ Deadline           ║
+    # ╠══╬═══════════════════════╬═════════╣
+    # ║ 01 ║ Hi                                                                   ║  23/04/2021   ║
+    # ║  1 ║
+    # ╚══╩═══════════════════════╩═════════╝
+
+    todo_list = "╔══╦═══════════════════════╦═════════╗\n║ ID ║ **Title**                                                              ║ **Deadline**           ║\n╠══╬═══════════════════════╬═════════╣"
     i = 1
     # Format the todos for discord
     for x in all_todos:
-        todo_list += f"\n**{i}.** {x['title']} - `{x['deadline'].strftime('%d/%m/%Y')}`"
+        if (len(x['title']) > 38):
+            title_text = x['title'][:35] + "..."
+        else:
+            title_text = x['title'] + " " * (68 - len(x['title']))
+        
+        id_str = str(i)
+        if (id_str[-1] == '1'):
+            id_str += " "
+
+        todo_list += f"\n║ {'   ' if (i < 10) else '' }{id_str}║ {title_text} ║  {x['deadline'].strftime('%d/%m/%Y')}   ║"
+        # todo_list += f"\n**{i}.** {x['title']} - `{x['deadline'].strftime('%d/%m/%Y')}`"
         i += 1
+    todo_list += "\n╚══╩═══════════════════════╩═════════╝"
     return todo_list
 
 def add_todo(
