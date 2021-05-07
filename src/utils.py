@@ -44,9 +44,10 @@ def get_config():
     Read /config.json and return it's content as a dictionary
     """
     try: 
-        with open("config.json", "r") as myfile:
-            data=myfile.read()
+        with open("config.json", "r") as my_file:
+            data = my_file.read()
         return json.loads(data)
+
     except FileNotFoundError:
         err("File \"config.json\" not found!")
 
@@ -64,13 +65,13 @@ def get_mongo_config():
     db = mongo_configs["db"]
 
     try:
-        myClient = MongoClient(url, serverSelectionTimeoutMS=10000)
+        my_client = MongoClient(url, serverSelectionTimeoutMS=10000)
     except errors.ServerSelectionTimeoutError as e:
         err(f"MongoDB server timed out. url: {url}")
 
     # Check whether the db exists in the server
-    if db in myClient.list_database_names():
-        mydb = myClient[db]
+    if db in my_client.list_database_names():
+        mydb = my_client[db]
     else:
         err(f'Database by name "{db}" not found')
     
@@ -137,15 +138,6 @@ def format_todo(todo: dict) -> str:
             subtasks_string += f"\n\t:small_orange_diamond: {subtask['title']}"
     todo_string += subtasks_string
 
-#     todo_string = (f"""
-# :white_small_square: Title - {todo["title"]}
-# :white_small_square: Description - {todo["description"]}
-# :white_small_square: Project - {todo["project"]}
-# :white_small_square: Deadline - {todo["deadline"].strftime("%d/%m/%Y")}
-# :white_small_square: Members - {todo["members"]}
-# :white_small_square: Subtasks - {todo["subtasks"]}
-# """)
-
     return todo_string
 
 def format_todolist(all_todos: list) -> str:
@@ -164,13 +156,14 @@ def format_todolist(all_todos: list) -> str:
     i = 1
     # Format the todos for discord
     for x in all_todos:
+
         if (len(x['title']) > 38):
             title_text = x['title'][:35] + "..."
         else:
             title_text = x['title'] + " " * (68 - len(x['title']))
         
         id_str = str(i)
-        if (id_str[-1] == '1'):
+        if id_str.endswith('1'):
             id_str += " "
 
         todo_list += f"\n║ {'   ' if (i < 10) else '' }{id_str}║ {title_text} ║  {x['deadline'].strftime('%d/%m/%Y')}   ║"
@@ -191,26 +184,26 @@ def add_todo(
     Create and add a todo document in the mongodb collection.
     """
 
-    subtasksDictArray = []
+    subtasks_dict_array = list()
     for x in subtasks:
-        subtasksDictArray.append({"title": x, "completed": False, "time": None, "user": None})
-    membersDictArray = []
+        subtasks_dict_array.append({"title": x, "completed": False, "time": None, "user": None})
+    members_dict_array = list()
     for x in members:
-        membersDictArray.append(x.id)
+        members_dict_array.append(x.id)
 
-    newTodoDocument = {
+    new_todo_document = {
         "title": title,
         "description": description,
         "project": project,
         "deadline": deadline,
         "creator": creator,
         "completed": False,
-        "members": membersDictArray,
-        "subtasks": subtasksDictArray
+        "members": members_dict_array,
+        "subtasks": subtasks_dict_array
     }
 
-    todoCol.insert_one(newTodoDocument)
-    print(newTodoDocument)
+    todoCol.insert_one(new_todo_document)
+    print(new_todo_document)
 
 def complete_todo(id: ObjectId, user: discord.User):
     """
@@ -229,10 +222,8 @@ def get_todos(filter: dict = {}) -> list:
 def cursor_to_list(cursor: pymongo.collection.Cursor):
     """
     Converts pymongo.collection.Cursor object to list.
-
     """
-
-    v = []  # Output list
+    v = list()  # Output list
     for x in cursor:
         v.append(x)
     return v
