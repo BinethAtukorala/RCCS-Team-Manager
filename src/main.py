@@ -15,7 +15,8 @@ from datetime import datetime
 
 TOKEN, BOT_PREFIX = utils.get_discord_config()
     
-bot = commands.Bot( command_prefix = BOT_PREFIX )
+bot = commands.Bot( command_prefix = BOT_PREFIX, description="Discord bot for Team Management")
+bot.remove_command("help")
 
 # =========== Commands ==============
 
@@ -27,9 +28,50 @@ async def on_ready():
         print(guild.name)
     await bot.change_presence(status=discord.Status.online, activity=discord.Game("📑 Todo Crunch"))
 
+
+# Help command
+@bot.command(name="help")
+async def help(ctx, *input):
+
+    """Shows details of all the commands of the bot"""
+    if not input:
+        emb = discord.Embed(title="Team Manager - Commands", color=discord.Color.gold(),
+            description=f'Use `{BOT_PREFIX}help <command>` to gain more information about a command 'f':smiley:\n')
+
+        commands_desc = ''
+        for command in bot.walk_commands():
+            if not command.cog_name and not command.hidden:
+                commands_desc += f'`{BOT_PREFIX}{command.name}` - {command.help}\n'
+        
+        if commands_desc:
+            emb.add_field(name='Commands', value=commands_desc, inline=False)
+        
+        emb.add_field(name="About", value=f"The Team Manager bot is developed by the **RCCS Development Team 2021** *(Avexra#7070, tarithj#7332)*, based on discord.py.\n\n\
+                                            Please visit https://github.com/BinethAtukorala/RCCS-Team-Manager to submit ideas or bugs.")
+        emb.set_footer(text=f"BETA")
+    
+    elif len(input) == 1:
+        for command in bot.walk_commands():
+            if (not command.hidden) and command.name == input[0].lower():
+                emb = discord.Embed(title=f'Help - `{BOT_PREFIX}{command.name}`', description=command.help, color = discord.Color.gold())
+                break
+            else:
+                emb = discord.Embed(title="What's that?!",
+                                    description=f"I've never heard form a module called `{input[0]}` before :scream:",
+                                    color=discord.Color.gold())       
+    
+    elif len(input) > 1:
+        emb = discord.Embed(title="That's too much.",
+                            description="Please request only one module at one :sweat_smile:",
+                            color=discord.Color.gold())
+    
+    await ctx.send(embed=emb)
+
+
 # List all todos in the database
 @bot.command(name='listall')
 async def listAllTodos(ctx):
+    """List all the todos in the database"""
     allTodos = utils.get_todos({"completed": False})
 
     #Check if any todos exists
@@ -45,7 +87,7 @@ async def listAllTodos(ctx):
     await ctx.send(response)
 
 # List todos assigned and created by the message author
-@bot.command(name='list')
+@bot.command(name='list', help=f"List todos assigned to or created by the user.\n\t`{BOT_PREFIX}list <ID>` - Show more information of a specific todo.")
 async def listTodos(ctx, index=0):
     creator = ctx.message.author.id
 
@@ -151,6 +193,7 @@ async def listTodos(ctx, index=0):
 # Create new todo
 @bot.command(name='add')
 async def addTodo(ctx, *members_str):
+    """Add a new todo to the database"""
     creator = ctx.message.author.id
     
     await ctx.send("Type `cancel` to exit and `skip` to skip optional fields.\n\n:grey_question: What is the title of the todo?")
