@@ -18,7 +18,7 @@ class Help(commands.Cog):
         """Shows details of all the commands of the bot"""
 
         if not input:
-            emb = discord.Embed(title="❓ Team Manager - Help",
+            emb = discord.Embed(title="ℹ  Team Manager - Help",
                                 description=f'Use `{self.bot.BOT_PREFIX}help <command>` to gain more information about a command 'f':smiley:\n',
                                 color=discord.Color.gold(),)
             
@@ -42,7 +42,7 @@ class Help(commands.Cog):
             
             emb.add_field(name="About", value=f"The Team Manager bot is developed by the **RCCS Development Team 2021** *(Avexra#7070, tarithj#7332)*, based on discord.py.\n\n\
                                                 Please visit https://github.com/BinethAtukorala/RCCS-Team-Manager to submit ideas or bugs.")
-            emb.set_footer(text=f"BETA")
+            emb.set_footer(text=f"- Royal College Computer Society '21")
         
         elif len(input) == 1:
             for command in self.walk_commands():

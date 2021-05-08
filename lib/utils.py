@@ -8,6 +8,7 @@ import os
 import pprint
 
 import discord
+from discord.ext import commands
 
 # -------- MongoDB Imports
 from pymongo import MongoClient, errors
@@ -48,8 +49,9 @@ def debug(message: str):
     """
     Print and log debug message
     """
-    print("Debug:", message)
-    logging.debug(message)
+    if(get_config()["debug"]):
+        print("Debug:", message)    
+        logging.debug(message)
 
 def create_config():
     print("\nConfiguration\n")
@@ -164,7 +166,46 @@ def get_discord_config():
         warn("Key \"prefix\" not found in config.json. Using default prefix \"prefix\".")
 
     return token, prefix
+
+async def format_todo_for_embed(todo: dict, bot) -> discord.Embed:
+    """
+    Formats todo to a dict to be used in an embed.
+    """
+    # Title and Description
+    emb = discord.Embed(title=f"TODO - {todo['title']}",
+                        description=todo['description'],
+                        color=discord.Color.dark_gray())
+
+    # Project
+    if todo['project']:
+        emb.add_field(name="◽ Project", value=todo['project'], inline=False)
+
+    # Deadline
+    emb.add_field(name="◽ Deadline", value=todo['deadline'].strftime("%Y-%m-%d"), inline=False)
+
+    # Members
+    members = todo['members']
+    members_string = ""
+    for member in members:
+        members_string +=  f"▫ {await bot.fetch_user(member)}\n"
+    if members_string != "":
+        emb.add_field(name="◽ Members", value=members_string, inline=False)
     
+    # Subtasks
+    subtasks = todo['subtasks']
+    subtasks_string = ""
+    for subtask in subtasks:
+        emoji = ":white_check_mark:" if subtask['completed'] else ":x:"
+        if(subtask['completed'] == False):
+            subtasks_string += f"▫ {subtask['title']}\n"
+    
+    if subtasks_string != "":
+        emb.add_field(name="◽ Subtasks", value=subtasks_string, inline=False)
+    
+    emb.set_footer(text=f"- Royal College Computer Society '21")
+
+    return emb
+
 
 def format_todo(todo: dict) -> str:
     """
@@ -181,7 +222,7 @@ def format_todo(todo: dict) -> str:
     todo_string += f"\n:white_small_square: Project - {todo['project']}"
 
     # Deadline
-    todo_string += f"\n:white_small_square: Deadline - {todo['deadline'].strftime('%d/%m/%Y')}"   
+    todo_string += f"\n:white_small_square: Deadline - {todo['deadline'].strftime('%Y-%m-%d')}"   
     
     # Members
     members = todo['members']
@@ -230,11 +271,60 @@ def format_todolist(all_todos: list) -> str:
         if id_str.endswith('1'):
             id_str += " "
 
-        todo_list += f"\n║ {'   ' if (i < 10) else '' }{id_str}║ {title_text} ║  {x['deadline'].strftime('%d/%m/%Y')}   ║"
-        # todo_list += f"\n**{i}.** {x['title']} - `{x['deadline'].strftime('%d/%m/%Y')}`"
+        todo_list += f"\n║ {'   ' if (i < 10) else '' }{id_str}║ {title_text} ║  {x['deadline'].strftime('%Y-%m-%d')}   ║"
+        # todo_list += f"\n**{i}.** {x['title']} - `{x['deadline'].strftime('%Y-%m-%d')}`"
         i += 1
     todo_list += "\n╚══╩═══════════════════════╩═════════╝"
     return todo_list
+
+def format_todolist_for_embed(emb_title: str, all_todos: list) -> discord.Embed:
+    """
+    Format list object of todos and return a `discord.Embed` object.
+    """
+    letters = [
+            "🇦",
+            "🇧",
+            "🇨",
+            "🇩",
+            "🇪",
+            "🇫",
+            "🇬",
+            "🇭"      
+            ]
+
+    todos = list()
+    x = 0
+    for todo in all_todos:
+        x += 1
+        title = letters[x-1] + " " + todo['title']
+        deadline = todo['deadline'].strftime('%Y-%m-%d')
+        todos.append(
+            {
+                "title": title, 
+                "deadline": deadline, 
+                "description": todo['description'] if todo['description'] != "" else "No description."
+            }
+        )
+
+    if(len(all_todos) > 0):
+
+        emb = discord.Embed(title=emb_title,
+                            color=discord.Color.gold())
+        
+        for todo in todos:
+            emb.add_field(
+                name=todo["title"] + " - `" + todo["deadline"] + "`", 
+                value=todo["description"], 
+                inline=False
+                )
+        
+    else:
+        emb = discord.Embed(title="No upcoming todos in the server",
+                            color=discord.Color.gold())
+
+    emb.set_footer(text=f"- Royal College Computer Society '21")
+
+    return emb
 
 def add_todo(
     title: str, 
@@ -296,10 +386,10 @@ def is_a_date(string: str) -> bool:
     """
     Returns True if the provided string is in the correct format.
     """
-    date_re = re.compile(r"\d\d/\d\d/\d\d\d\d")
+    date_re = re.compile(r"\d\d\d\d-\d\d-\d\d")
     if(date_re.match(string) != None):
         try:
-            date = deadline = datetime.datetime.strptime(string, "%d/%m/%Y")
+            date = deadline = datetime.datetime.strptime(string, "%Y-%m-%d")
         except ValueError:
             return False
         else:

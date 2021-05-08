@@ -13,28 +13,260 @@ class Todo(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.letters = [
+                "🇦",
+                "🇧",
+                "🇨",
+                "🇩",
+                "🇪",
+                "🇫",
+                "🇬",
+                "🇭"      
+                ]
 
     @commands.command(name='listall')
     async def list_all_todos(self, ctx):
         """List all the todos in the database"""
-        all_todos = utils.get_todos({"completed": False})
+        all_todos = utils.get_todos({"completed": False})[:8]
 
-        #Check if any todos exists
-        if(len(all_todos) > 0):
+        message_sent = await ctx.send(embed=utils
+                    .format_todolist_for_embed(
+                        "All upcoming todos in the server",    
+                        all_todos
+                        )
+                    )
+        
+        async def reaction_task(i: int, todo: dict, message):
+            letter = self.letters[i]
+            await message.add_reaction(letter)
+            def checkReaction(reaction, user):
+                return user == ctx.message.author and (str(reaction.emoji) == letter) and reaction.message == message
 
-            # Format the todos for discord
-            todoList = utils.format_todolist(all_todos)
+            try:
+                reaction, user = await self.bot.wait_for('reaction_add', check=checkReaction, timeout=20)
+                if(str(reaction.emoji) == letter):
+                    # TODO: Implement show todo
+                    await ctx.send(embed=await utils.format_todo_for_embed(todo, self.bot))
+                    utils.debug(f"Reacted : {letter}")
+                    await message.remove_reaction(letter, self.bot.user)
+                    await message.remove_reaction(letter, ctx.message.author)
+            except asyncio.TimeoutError:
+                await message.remove_reaction(letter, self.bot.user)
+        
+        async def bulk_reaction_add(reactions, message):
+            for reaction in reactions:
+                await message_sent.add_reaction(reaction)
 
-            response = "**All upcoming todos in this server** {0}\n{1}".format(ctx.message.author.mention, todoList)
-        else:
-            response = "No upcoming todos in this server."
+        tasks = list()
+        reactions = list()
 
-        await ctx.send(response)
+        for x in range(len(all_todos)):
+            reactions.append(self.letters[x])
+            tasks.append(reaction_task(x, all_todos[x], message_sent))
+        
+        asyncio.run_coroutine_threadsafe(
+            bulk_reaction_add(reactions,message_sent), 
+            asyncio.get_event_loop()
+            )
+        asyncio.run_coroutine_threadsafe(
+            asyncio.wait(
+                tasks, 
+                return_when=asyncio.ALL_COMPLETED
+                ), # Wait for the reactions to be done
+            asyncio.get_event_loop()
+            )
+
 
     @commands.command(name='list')
     async def list_todos(self, ctx, index=0):
-        """List todos assigned to or created by the user.\n\
-        `list <ID>` - Show more information of a specific todo."""
+        """List todos assigned to or created by the user."""
+        creator = ctx.message.author.id
+
+        # Todos assigned to the author
+        all_todos_to_author = utils.cursor_to_list(utils.get_todos({"members": creator, "completed": False}))
+
+        #Todos created by author
+        all_todos_by_author = utils.get_todos({"creator": creator, "completed": False, "members": {'$ne': creator} })
+
+        # Respond with the info of a specific todo if an index is given
+        if(index > 0 and (len(all_todos_to_author) >= index or len(all_todos_by_author) <= index)):
+
+            # Check which list does the index refer to
+            if(len(all_todos_to_author) >= index):
+                todo = all_todos_to_author[index-1]
+
+            elif(len(all_todos_by_author) <= index):
+                todo = all_todos_by_author[index - len(all_todos_to_author) - 1]
+
+            members = list()
+            for x in todo['members']:
+                user = await self.bot.fetch_user(x)
+                members.append(user.name + "#" + user.discriminator)
+            todo['members'] = members
+            
+            response = await utils.format_todo_for_embed(todo, self.bot)
+
+            message_sent = await ctx.send(embed=response)
+
+            await message_sent.add_reaction("✅")
+
+            def checkReaction(reaction, user):
+                return user == ctx.message.author and (str(reaction.emoji) == "✅")
+            
+            try:
+                reaction, user = await self.bot.wait_for('reaction_add', check=checkReaction, timeout=20)
+                if(str(reaction.emoji) == "✅"):
+                    utils.complete_todo(todo["_id"], user)
+                    await ctx.send("✅ Marked as completed!")
+            except asyncio.TimeoutError:
+                await message_sent.remove_reaction("✅", self.bot.user)
+        
+        # List all todos if no index is given
+        else:
+            i = 0
+
+            # Check if any exists
+            if(len(all_todos_by_author) > 0): 
+
+                # todoList = utils.format_todolist(all_todos_by_author) # Format for discord
+                # await ctx.send("**Todos assigned to others by you** {0}\n{1}\n\n".format(ctx.message.author.mention, todoList))
+
+                message_sent = await ctx.send(
+                    embed=utils.format_todolist_for_embed(
+                        "Todos assigned to others by you", 
+                        all_todos_by_author
+                        ).add_field(
+                            name="▫▫▫▫▫▫▫▫▫▫", 
+                            value=ctx.message.author.mention, 
+                            inline=False
+                            )
+                        )
+        
+                async def reaction_task(i: int, todo: dict, message):
+                    letter = self.letters[i]
+                    await message.add_reaction(letter)
+                    def checkReaction(reaction, user):
+                        return user == ctx.message.author and (str(reaction.emoji) == letter) and reaction.message == message
+
+                    try:
+                        reaction, user = await self.bot.wait_for('reaction_add', check=checkReaction, timeout=60)
+                        if(str(reaction.emoji) == letter):
+                            # TODO: Implement show todo
+                            final_todo = await ctx.send(embed=await utils.format_todo_for_embed(todo, self.bot))
+
+                            await final_todo.add_reaction("✅")
+
+                            def checkReaction(reaction, user):
+                                return user == ctx.message.author and (str(reaction.emoji) == "✅") and reaction.message == final_todo
+                            
+                            try:
+                                reaction, user = await self.bot.wait_for('reaction_add', check=checkReaction, timeout=20)
+                                if(str(reaction.emoji) == "✅"):
+                                    utils.complete_todo(todo["_id"], user)
+                                    await ctx.send("✅ Marked as completed!")
+                            except asyncio.TimeoutError:
+                                await final_todo.remove_reaction("✅", self.bot.user)
+                            
+                            await message.remove_reaction(letter, self.bot.user)
+                            await message.remove_reaction(letter, ctx.message.author)
+                    except asyncio.TimeoutError:
+                        await message.remove_reaction(letter, self.bot.user)
+                
+                async def bulk_reaction_add(reactions, message):
+                    for reaction in reactions:
+                        await message.add_reaction(reaction)
+
+                tasks = list()
+                reactions = list()
+
+                for x in range(len(all_todos_by_author)):
+                    reactions.append(self.letters[x])
+                    tasks.append(reaction_task(x, all_todos_by_author[x], message_sent))
+                
+                asyncio.run_coroutine_threadsafe(
+                    bulk_reaction_add(reactions,message_sent), 
+                    asyncio.get_event_loop()
+                    )
+                asyncio.run_coroutine_threadsafe(
+                    asyncio.wait(
+                        tasks, 
+                        return_when=asyncio.ALL_COMPLETED
+                        ), # Wait for the reactions to be done
+                    asyncio.get_event_loop()
+                    )
+
+            if(len(all_todos_to_author) > 0):
+
+                # todoList = utils.format_todolist(all_todos_by_author) # Format for discord
+                # await ctx.send("**Todos assigned to others by you** {0}\n{1}\n\n".format(ctx.message.author.mention, todoList))
+                message_sent_to_author = await ctx.send(
+                    embed=utils.format_todolist_for_embed(
+                        "Todos assigned to you", 
+                        all_todos_to_author
+                        ).add_field(
+                            name="▫▫▫▫▫▫▫▫▫▫", 
+                            value=ctx.message.author.mention, 
+                            inline=False
+                            )
+                        )
+        
+                async def reaction_task(i: int, todo: dict, message):
+                    letter = self.letters[i]
+                    await message.add_reaction(letter)
+
+                    def checkReaction(reaction, user):
+                        return user == ctx.message.author and (str(reaction.emoji) == letter) and reaction.message == message
+
+                    try:
+                        reaction, user = await self.bot.wait_for('reaction_add', check=checkReaction, timeout=60)
+                        if(str(reaction.emoji) == letter):
+                            # TODO: Implement show todo
+                            utils.debug(f"Reacted : {letter}")
+                            final_todo = await ctx.send(embed=await utils.format_todo_for_embed(todo, self.bot))
+                            utils.debug(final_todo)
+                            await final_todo.add_reaction("✅")
+
+                            def checkReaction(reaction, user):
+                                return user == ctx.message.author and (str(reaction.emoji) == "✅") and reaction.message == final_todo
+                            
+                            try:
+                                reaction, user = await self.bot.wait_for('reaction_add', check=checkReaction, timeout=20)
+                                if(str(reaction.emoji) == "✅"):
+                                    utils.complete_todo(todo["_id"], user)
+                                    await ctx.send("✅ Marked as completed!")
+                            except asyncio.TimeoutError:
+                                await final_todo.remove_reaction("✅", self.bot.user)
+
+                            await message.remove_reaction(letter, self.bot.user)
+                            await message.remove_reaction(letter, ctx.message.author)
+                    except asyncio.TimeoutError:
+                        await message.remove_reaction(letter, self.bot.user)
+                
+                async def bulk_reaction_add(reactions, message):
+                    for reaction in reactions:
+                        await message.add_reaction(reaction)
+
+                tasks = list()
+                reactions = list()
+
+                for x in range(len(all_todos_to_author)):
+                    reactions.append(self.letters[x])
+                    tasks.append(reaction_task(x, all_todos_to_author[x], message_sent_to_author))
+                
+                asyncio.run_coroutine_threadsafe(
+                    bulk_reaction_add(reactions,message_sent_to_author), 
+                    asyncio.get_event_loop()
+                    )
+                asyncio.run_coroutine_threadsafe(
+                    asyncio.wait(
+                        tasks, 
+                        return_when=asyncio.ALL_COMPLETED
+                        ), # Wait for the reactions to be done
+                    asyncio.get_event_loop()
+                    )
+
+
+    async def list_todos_old(self, ctx, index=0):
         creator = ctx.message.author.id
 
         # Todos assigned to the author
@@ -75,6 +307,8 @@ class Todo(commands.Cog):
                     await ctx.send("✅ Marked as completed!")
             except asyncio.TimeoutError:
                 await message_sent.remove_reaction("✅", self.bot.user)
+        
+            
 
         
         # List all todos if no index is given
@@ -129,7 +363,7 @@ class Todo(commands.Cog):
                         id_str += " "
 
                     # Sending the message outside the coroutine to maintain message number ordering
-                    message = await ctx.send(f"\n║ {'   ' if (i < 10) else '' }{id_str} ║ {title_text} ║  {todo['deadline'].strftime('%d/%m/%Y')}   ║")
+                    message = await ctx.send(f"\n║ {'   ' if (i < 10) else '' }{id_str} ║ {title_text} ║  {todo['deadline'].strftime('%Y-%m-%d')}   ║")
 
                     messages_coroutines.append(message_task(i, todo, message))
 
@@ -137,9 +371,6 @@ class Todo(commands.Cog):
                 
                 asyncio.run_coroutine_threadsafe(asyncio.wait(messages_coroutines, return_when=asyncio.ALL_COMPLETED), # Wait for the reactions to be done
                                                 asyncio.get_event_loop())
-
-            else:
-                await ctx.send("No upcoming todos for you. Yayy")
     
     @commands.command(name='add')
     async def addTodo(self, ctx, *members_str):
@@ -203,7 +434,7 @@ class Todo(commands.Cog):
             return
 
         await ctx.send(f":white_check_mark: Project is `{project}`\n\n"
-                        + ":grey_question: When is the deadline? (DD/MM/YYYY)")
+                        + ":grey_question: When is the deadline? (YYYY-MM-DD)")
 
         # Wait for reply and exit if it's 'cancel'
 
@@ -219,9 +450,9 @@ class Todo(commands.Cog):
                 reply.replace(".", "/")
 
                 if(utils.is_a_date(reply)):
-                    return datetime.strptime(reply, "%d/%m/%Y")
+                    return datetime.strptime(reply, "%Y-%m-%d")
                 else:
-                    await ctx.send("Uhh... That doesn't look like a valid date.\nDeadline should be in the format (DD/MM/YYYY). Please enter the date again.")
+                    await ctx.send("Uhh... That doesn't look like a valid date.\nDeadline should be in the format (YYYY-MM-DD). Please enter the date again.")
                     return await get_deadline(bot)
 
             except asyncio.TimeoutError:
@@ -233,7 +464,7 @@ class Todo(commands.Cog):
         if(deadline == None):
             return
 
-        await ctx.send(f":white_check_mark: Deadline is `{deadline.strftime('%d/%m/%Y')}`\n\n:grey_question: Please mention the people you want to assign this to. (optional)")
+        await ctx.send(f":white_check_mark: Deadline is `{deadline.strftime('%Y-%m-%d')}`\n\n:grey_question: Please mention the people you want to assign this to. (optional)")
 
         members = list()
         # Wait for reply and exit if it's 'cancel'
@@ -246,17 +477,21 @@ class Todo(commands.Cog):
 
             if(reply.lower() != "skip"):
                 for x in reply.split():
-                    members.append(await self.fetch_user(x[3:-1]))
+                    x = await self.bot.fetch_user(int(x[3:-1]))
+                    utils.debug(x)
+                    members.append(x)
 
         except asyncio.TimeoutError:
             await ctx.send("Sorry, you took too long to reply")
+            return
 
         members_text = ""
         if(len(members) > 0):
             for x in members:   
                 members_text+=f"{x}, "
             members_text = members_text[:-2]
-        members_text = "not given."
+        else:
+            members_text = "not given."
 
         await ctx.send(f":white_check_mark: Members are {members_text}\n\n:grey_question: Please list out subtasks of the todo in each line. (optional)")
         subtasks = list()
@@ -274,21 +509,31 @@ class Todo(commands.Cog):
 
         except asyncio.TimeoutError:
             await ctx.send("Sorry, you took too long to reply")
+            return
         
         subtasks_text = ""
 
         for x in subtasks:
-            subtasks_text+=f"{x}, "
+            subtasks_text+=f"{x}\n"
 
-        subtasks_text = subtasks_text[:-2]
-        message = f"Are the following details correct?\n\n"
-        message += f":white_small_square: Title - {title}\n"
-        message += f":white_small_square: Description - {description}\n" if description else ""
-        message += f":white_small_square: Deadline - {deadline.strftime('%d/%m/%Y')}\n"
-        message += f":white_small_square: Members - {members_text}\n" if members_text != "not given." else ""
-        message += f":white_small_square: Subtasks - {subtasks_text}" if subtasks_text else ""
+        emb = discord.Embed(
+            title="❔ Are the following details correct?", 
+            description="Validation",
+            color=discord.Color.gold()
+            )
 
-        message_sent = await ctx.send(message)
+        emb.add_field(name="◽ Title", value=title, inline=False)
+        if description != "":
+            emb.add_field(name="◽ Description", value=description, inline=False)
+        emb.add_field(name="◽ Deadline", value=deadline.strftime("%Y-%m-%d"), inline=False)
+        if members_text != "not given.":
+            emb.add_field(name="◽ Members", value=members_text, inline=False)
+        if subtasks_text != "":
+            emb.add_field(name="◽ Subtasks", value=subtasks_text, inline=False)
+
+        emb.set_footer(text="- Royal College Computer Society '21")
+
+        message_sent = await ctx.send(embed=emb)
 
         await message_sent.add_reaction("✅")
         await message_sent.add_reaction("❌")
@@ -300,15 +545,15 @@ class Todo(commands.Cog):
             reaction, user = await self.bot.wait_for('reaction_add', check=checkReaction, timeout=20)
         except asyncio.TimeoutError:
             await ctx.send("Sorry, you took too long to react.")
-        
-        if(str(reaction.emoji) == "✅"):
-            utils.add_todo(title, description, project, deadline, creator, members, subtasks)
-
-            await ctx.send(":white_check_mark: Done, Todo Created")
-            
         else:
-            await ctx.send("Todo Rejected. :x:")
-            print("Todo rejected")
+            if(str(reaction.emoji) == "✅"):
+                utils.add_todo(title, description, project, deadline, creator, members, subtasks)
+
+                await ctx.send(":white_check_mark: Done, Todo Created")
+                
+            else:
+                await ctx.send("Todo Rejected. :x:")
+                print("Todo rejected")
         
         await message_sent.remove_reaction("✅", self.bot.user)
         await message_sent.remove_reaction("❌", self.bot.user)

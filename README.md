@@ -27,4 +27,4 @@ These are the requirements for the bot.
 - Project boards
 
 ## 🤝 Contributing
-Contributions, feedback, and bug reports are welcom! Feel free to check out our [issues page](https://github.com/BinethAtukorala/RCCS-Team-Manager/issues) to see how you can help!
+Contributions, feedback, and bug reports are welcome! Feel free to check out our [issues page](https://github.com/BinethAtukorala/RCCS-Team-Manager/issues) to see how you can help!
