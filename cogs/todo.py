@@ -1,71 +1,18 @@
-name="team_manager"
-
-# ---------- Discord Imports
 import discord
+import asyncio
 from discord.ext import commands
 
-import asyncio
 from datetime import datetime
 
 from lib import utils
 
-class TeamManager(commands.Bot):
-    def __init__(self, prefix, token):
-        self.BOT_PREFIX = prefix
-        self.TOKEN = token
-        super().__init__(command_prefix=prefix, description="Discord bot for Team Management")
-        self.remove_command("help")
+class Todo(commands.Cog):
+    """
+    Todo commands
+    """
 
-    async def on_ready(self):
-        print("Logged in as:")
-        print("Username: " + self.user.name + "#" + self.user.discriminator)
-        print("ID: " + str(self.user.id))
-        print("------")
-        print("Connected to servers: ")
-        guilds = await self.fetch_guilds(limit=100).flatten()
-        for guild in guilds:
-            print(guild.name)
-        await self.change_presence(status=discord.Status.online, activity=discord.Game("📑 Todo Crunch"))
-    
-    @commands.command(name="help")
-    async def help(self, ctx, *input):
-        """Shows details of all the commands of the bot"""
-
-        if not input:
-            emb = discord.Embed(title="Team Manager - Commands",
-                                description=f'Use `{BOT_PREFIX}help <command>` to gain more information about a command 'f':smiley:\n',
-                                color=discord.Color.gold(),)
-
-            commands_desc = ''
-            for command in self.walk_commands():
-                if not command.cog_name and not command.hidden:
-                    commands_desc += f'`{BOT_PREFIX}{command.name}` - {command.help}\n'
-            
-            if commands_desc:
-                emb.add_field(name='Commands', value=commands_desc, inline=False)
-            
-            emb.add_field(name="About", value=f"The Team Manager bot is developed by the **RCCS Development Team 2021** *(Avexra#7070, tarithj#7332)*, based on discord.py.\n\n\
-                                                Please visit https://github.com/BinethAtukorala/RCCS-Team-Manager to submit ideas or bugs.")
-            emb.set_footer(text=f"BETA")
-        
-        elif len(input) == 1:
-            for command in self.walk_commands():
-                if (not command.hidden) and command.name == input[0].lower():
-                    emb = discord.Embed(title=f'Help - `{BOT_PREFIX}{command.name}`',
-                                        description=command.help, 
-                                        color=discord.Color.gold())
-                    break
-                else:
-                    emb = discord.Embed(title="What's that?!",
-                                        description=f"I've never heard form a module called `{input[0]}` before :scream:",
-                                        color=discord.Color.gold())       
-        
-        elif len(input) > 1:
-            emb = discord.Embed(title="That's too much.",
-                                description="Please request only one module at one :sweat_smile:",
-                                color=discord.Color.gold())
-        
-        await ctx.send(embed=emb)
+    def __init__(self, bot):
+        self.bot = bot
 
     @commands.command(name='listall')
     async def list_all_todos(self, ctx):
@@ -108,7 +55,7 @@ class TeamManager(commands.Bot):
 
             members = list()
             for x in todo['members']:
-                user = await self.fetch_user(x)
+                user = await self.bot.fetch_user(x)
                 members.append(user.name + "#" + user.discriminator)
             todo['members'] = members
             
@@ -122,12 +69,12 @@ class TeamManager(commands.Bot):
                 return user == ctx.message.author and (str(reaction.emoji) == "✅")
             
             try:
-                reaction, user = await self.wait_for('reaction_add', check=checkReaction, timeout=20)
+                reaction, user = await self.bot.wait_for('reaction_add', check=checkReaction, timeout=20)
                 if(str(reaction.emoji) == "✅"):
                     utils.complete_todo(todo["_id"], user)
                     await ctx.send("✅ Marked as completed!")
             except asyncio.TimeoutError:
-                await message_sent.remove_reaction("✅", self.user)
+                await message_sent.remove_reaction("✅", self.bot.user)
 
         
         # List all todos if no index is given
@@ -147,25 +94,27 @@ class TeamManager(commands.Bot):
 
                 # Create coroutine to handle reactions of the messages
                 # because otherwise the next message wouldn't be shown before the reaction check is done
+                
+                    
                 async def message_task(i:int, todo: dict, message):
-                    await message.add_reaction("✅")
-
+                    await message.add_reaction("✅")                    
+                    
                     def checkReaction(reaction, user):
                         return user == ctx.message.author and (str(reaction.emoji) == "✅") and reaction.message == message
-                    
+
                     try:
-                        reaction, user = await self.wait_for('reaction_add', check=checkReaction, timeout=20)
+                        reaction, user = await self.bot.wait_for('reaction_add', check=checkReaction, timeout=20)
                         if(str(reaction.emoji) == "✅"):
                             utils.complete_todo(todo["_id"], user)
                             await ctx.send(f"✅ Marked as completed! - **{i}.** {todo['title']}")
+                            await message.remove_reaction("✅", self.bot.user)
+                            await message.remove_reaction("✅", ctx.message.author)
                     except asyncio.TimeoutError:
-                        await message.remove_reaction("✅", self.user)
+                        await message.remove_reaction("✅", self.bot.user)
                 
                 messages_coroutines = list()
 
-                await ctx.send("╔══╦═══════════════════════╦═════════╗\n\
-                                ║ ID ║ **Title**                                                              ║ **Deadline**           ║\n\
-                                ╠══╬═══════════════════════╬═════════╣")
+                await ctx.send("╔══╦═══════════════════════╦═════════╗\n║ ID ║ **Title**                                                              ║ **Deadline**           ║\n╠══╬═══════════════════════╬═════════╣")
 
                 for todo in all_todos_to_author:
                     title = todo['title']
@@ -180,9 +129,7 @@ class TeamManager(commands.Bot):
                         id_str += " "
 
                     # Sending the message outside the coroutine to maintain message number ordering
-                    message = await ctx.send(f"\n║ {'   ' if (i < 10) else '' }{id_str} \
-                                                ║ {title_text} \
-                                                ║  {todo['deadline'].strftime('%d/%m/%Y')}   ║")
+                    message = await ctx.send(f"\n║ {'   ' if (i < 10) else '' }{id_str} ║ {title_text} ║  {todo['deadline'].strftime('%d/%m/%Y')}   ║")
 
                     messages_coroutines.append(message_task(i, todo, message))
 
@@ -199,8 +146,8 @@ class TeamManager(commands.Bot):
         """Add a new todo to the database"""
         creator = ctx.message.author.id
         
-        await ctx.send("Type `cancel` to exit and `skip` to skip optional fields.\n\n\
-                        :grey_question: What is the title of the todo?")
+        await ctx.send("Type `cancel` to exit and `skip` to skip optional fields.\n\n"
+                        + ":grey_question: What is the title of the todo?")
 
         # Check the whether the reply is given by the author of the command
         def check(m):
@@ -209,11 +156,7 @@ class TeamManager(commands.Bot):
         # Wait for reply and exit if it's 'cancel'
         # TODO: Code is too redundant
         try:
-            reply = (await self.wait_for('message', check=check, timeout=60.0)).content
-
-            if(reply.lower() == "cancel"):
-                await ctx.send(":no_entry: Canceled!")
-                return
+            reply = (await self.bot.wait_for('message', check=check, timeout=60.0)).content
 
             title = reply
         except asyncio.TimeoutError:
@@ -224,7 +167,7 @@ class TeamManager(commands.Bot):
 
         # Wait for reply and exit if it's 'cancel'
         try:
-            reply = (await self.wait_for('message', check=check, timeout=60.0)).content
+            reply = (await self.bot.wait_for('message', check=check, timeout=60.0)).content
 
             if(reply.lower() == "cancel"):
                 await ctx.send(":no_entry: Canceled!")
@@ -243,7 +186,7 @@ class TeamManager(commands.Bot):
 
         # Wait for reply and exit if it's 'cancel'
         try:
-            reply = (await self.wait_for('message', check=check, timeout=60.0)).content
+            reply = (await self.bot.wait_for('message', check=check, timeout=60.0)).content
 
             if(reply.lower() == "cancel"):
                 await ctx.send(":no_entry: Canceled!")
@@ -259,32 +202,43 @@ class TeamManager(commands.Bot):
             await ctx.send("Sorry, you took too long to reply")
             return
 
-        await ctx.send(f":white_check_mark: Project is `{project}`\n\n\
-                        :grey_question: When is the deadline? (DD/MM/YYYY)")
-
-        def check_date(m):
-            return check(m) and utils.is_a_date(m.content)
+        await ctx.send(f":white_check_mark: Project is `{project}`\n\n"
+                        + ":grey_question: When is the deadline? (DD/MM/YYYY)")
 
         # Wait for reply and exit if it's 'cancel'
-        try:
-            reply = (await self.wait_for('message', check=check_date, timeout=60.0)).content
 
-            if(reply.lower() == "cancel"):
-                await ctx.send(":no_entry: Canceled!")
-                return
+        async def get_deadline(bot):
+            try:
+                reply = (await bot.wait_for('message', check=check, timeout=60.0)).content
 
-            deadline = datetime.strptime(reply, "%d/%m/%Y")
+                if(reply.lower() == "cancel"):
+                    await ctx.send(":no_entry: Canceled!")
+                    return None
 
-        except asyncio.TimeoutError:
-            await ctx.send("Sorry, you took too long to reply")
+                reply.replace("-", "/")
+                reply.replace(".", "/")
 
-        await ctx.send(f":white_check_mark: Deadline is `{deadline.strftime('%d/%m/%Y')}`\n\n\
-                        :grey_question: Please mention the people you want to assign this to. (optional)")
+                if(utils.is_a_date(reply)):
+                    return datetime.strptime(reply, "%d/%m/%Y")
+                else:
+                    await ctx.send("Deadline should be in the format (DD/MM/YYYY). Please enter the date again.")
+                    return await get_deadline(bot)
+
+            except asyncio.TimeoutError:
+                await ctx.send("Sorry, you took too long to reply")
+                return None
+
+        deadline = await get_deadline(self.bot)
+
+        if(deadline == None):
+            return
+
+        await ctx.send(f":white_check_mark: Deadline is `{deadline.strftime('%d/%m/%Y')}`\n\n:grey_question: Please mention the people you want to assign this to. (optional)")
 
         members = list()
         # Wait for reply and exit if it's 'cancel'
         try:
-            reply = (await self.wait_for('message', check=check, timeout=60.0)).content
+            reply = (await self.bot.wait_for('message', check=check, timeout=60.0)).content
 
             if(reply.lower() == "cancel"):
                 await ctx.send(":no_entry: Canceled!")
@@ -308,7 +262,7 @@ class TeamManager(commands.Bot):
         subtasks = list()
         # Wait for reply and exit if it's 'cancel'
         try:
-            reply = (await self.wait_for('message', check=check, timeout=60.0)).content
+            reply = (await self.bot.wait_for('message', check=check, timeout=60.0)).content
 
             if(reply.lower() == "cancel"):
                 await ctx.send(":no_entry: Canceled!")
@@ -327,12 +281,12 @@ class TeamManager(commands.Bot):
             subtasks_text+=f"{x}, "
 
         subtasks_text = subtasks_text[:-2]
-        message = f"Are the following details correct?\n\n\
-                    :white_small_square: Title - {title}\n\
-                    :white_small_square: Description - {description}\n\
-                    :white_small_square: Deadline - {deadline.strftime('%d/%m/%Y')}\n\
-                    :white_small_square: Members - {members_text}\n\
-                    :white_small_square: Subtasks - {subtasks_text}"
+        message = f"Are the following details correct?\n\n"
+        message += f":white_small_square: Title - {title}\n"
+        message += f":white_small_square: Description - {description}\n" if description else ""
+        message += f":white_small_square: Deadline - {deadline.strftime('%d/%m/%Y')}\n"
+        message += f":white_small_square: Members - {members_text}\n" if members_text != "not given." else ""
+        message += f":white_small_square: Subtasks - {subtasks_text}" if subtasks_text else ""
 
         message_sent = await ctx.send(message)
 
@@ -343,7 +297,7 @@ class TeamManager(commands.Bot):
             return user == ctx.message.author and (str(reaction.emoji) == "✅" or str(reaction.emoji) == "❌")
         
         try:
-            reaction, user = await self.wait_for('reaction_add', check=checkReaction, timeout=20)
+            reaction, user = await self.bot.wait_for('reaction_add', check=checkReaction, timeout=20)
         except asyncio.TimeoutError:
             await ctx.send("Sorry, you took too long to react.")
         
@@ -355,10 +309,9 @@ class TeamManager(commands.Bot):
         else:
             await ctx.send("Todo Rejected. :x:")
             print("Todo rejected")
-    
-    async def close(self):
-        await super().close()
-        # await self.session.close()
+        
+        await message_sent.remove_reaction("✅", self.bot.user)
+        await message_sent.remove_reaction("❌", self.bot.user)
 
-    def run(self):
-        super().run(self.TOKEN, reconnect=True)
+def setup(bot):
+    bot.add_cog(Todo(bot))

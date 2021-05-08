@@ -1,7 +1,13 @@
-name = "utils"
-
-import pymongo, re, sys, json, logging, discord
+import pymongo
+import re
+import sys
+import json
+import logging
 import datetime
+import os
+import pprint
+
+import discord
 
 # -------- MongoDB Imports
 from pymongo import MongoClient, errors
@@ -11,11 +17,10 @@ from bson.objectid import ObjectId
 
 LOG_FILE = "logs.log"
 
-with open(LOG_FILE, 'w') as file:
-    file.writelines(f"RCCS Team Manager Bot - {str(datetime.datetime.now())}\n\n==============================\n\n")
+with open(LOG_FILE, 'w') as f:
+    f.writelines(f"RCCS Team Manager Bot - {str(datetime.datetime.now())}\n\n==============================\n\n")
 
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
-
 
 def err(message: str):
     """
@@ -39,13 +44,55 @@ def info(message: str):
     print("Info:", message)
     logging.info(message)
 
+def debug(message: str):
+    """
+    Print and log debug message
+    """
+    print("Debug:", message)
+    logging.debug(message)
+
+def create_config():
+    print("\nConfiguration\n")
+    
+    print(" - Discord")
+    token = input("Enter Discord bot token : ")
+    prefix = input("Enter prefix for bot (Default '~') : ") or "~"
+
+    print(" - MongoDB")
+    url = input("Enter url for MongoDB : ")
+    db = input("Enter database name : ")
+
+    config = {
+        "discord": {
+            "token": token,
+            "prefix": prefix
+        },
+        "mongo": {
+            "url": url,
+            "db": db
+        }
+    }
+
+    with open('config.json', 'w') as f:
+        t = json.dumps(config, indent=4)
+        t = re.sub('\[\n {7}', '[', t)
+        t = re.sub('(?<!\]),\n {7}', ',', t)
+        t = re.sub('\n {4}\]', ']', t)
+        f.write(t)
+
+def recreate_config():
+    create_config()
+    todoCol = get_mongo_config()
+    info("Please restart to update config.json...")
+    sys.exit(-1)
+
 def get_config():
     """
     Read /config.json and return it's content as a dictionary
     """
     try: 
-        with open("config.json", "r") as my_file:
-            data = my_file.read()
+        with open("config.json", "r") as f:
+            data = f.read()
         return json.loads(data)
 
     except FileNotFoundError:
@@ -59,10 +106,15 @@ def get_mongo_config():
     if("mongo" in config):
         mongo_configs = config["mongo"]
     else:
-        err("Field \"mongo\" not found in config.json")
+        warn("Field \"mongo\" not found in config.json")
+        recreate_config() if (input("Do you want to recreate config.json? (y/n): ") == "y") else err("config.json - Field not found")
     
-    url = mongo_configs["url"]
-    db = mongo_configs["db"]
+    if("url" in mongo_configs and "db" in mongo_configs):
+        url = mongo_configs["url"]
+        db = mongo_configs["db"]
+    else:
+        warn("Field not found in config.json")
+        recreate_config() if (input("Do you want to recreate config.json? (y/n): ") == "y") else err("config.json - Field not found")
 
     try:
         my_client = MongoClient(url, serverSelectionTimeoutMS=10000)
@@ -73,32 +125,44 @@ def get_mongo_config():
     if db in my_client.list_database_names():
         mydb = my_client[db]
     else:
-        err(f'Database by name "{db}" not found')
+        warn(f'Database by name "{db}" not found')
+        recreate_config() if (input("Do you want to recreate config.json? (y/n): ") == "y") else err("config.json - Field not found")
     
     return mydb["todo"]
 
 # -------- MongoDB inits
 
-todoCol = get_mongo_config()    
+# if not os.path.isfile("config.json"):  
+#     warn("File config.json not found.")  
+#     create_config()
+
+todoCol = get_mongo_config()
 
 def get_discord_config(): 
     """
     Return TOKEN, BOT_PREFIX from utils.get_config()
     """
     config = get_config()
+    
     if("discord" in config):
-        discord_configs = config["discord"]
+        discord_configs = config["discord"]  
     else:
-        err("Field \"discord\" not found in config.json")
+        warn("Field \"discord\" not found in config.json")
+        recreate_config() if (input("Do you want to recreate config.json? (y/n): ") == "y") else err("config.json - Field not found")
+    
     if("token" not in discord_configs):
-        err("Key \"token\" not found in config.json.")
+        warn("Key \"token\" not found in config.json.")
+        recreate_config() if (input("Do you want to recreate config.json? (y/n): ") == "y") else err("config.json - Field not found")
         sys.exit(-1)
+    
     token = discord_configs["token"]
+    
     if("prefix" in discord_configs):
-        prefix = discord_configs['prefix']
+        prefix = discord_configs['prefix'] 
     else:
         prefix = "~"
         warn("Key \"prefix\" not found in config.json. Using default prefix \"prefix\".")
+
     return token, prefix
     
 
