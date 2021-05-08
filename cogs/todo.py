@@ -221,7 +221,7 @@ class Todo(commands.Cog):
                 if(utils.is_a_date(reply)):
                     return datetime.strptime(reply, "%d/%m/%Y")
                 else:
-                    await ctx.send("Deadline should be in the format (DD/MM/YYYY). Please enter the date again.")
+                    await ctx.send("Uhh... That doesn't look like a valid date.\nDeadline should be in the format (DD/MM/YYYY). Please enter the date again.")
                     return await get_deadline(bot)
 
             except asyncio.TimeoutError:
