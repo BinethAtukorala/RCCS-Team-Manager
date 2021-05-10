@@ -1,5 +1,6 @@
 package models
 
 type Member struct {
-	Name string
+	Name      string
+	DiscordId string
 }
