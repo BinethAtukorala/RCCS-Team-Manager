@@ -1,5 +1,5 @@
 package models
 
 type Task struct {
-	Name string
+	Name string `bson:"_name"`
 }

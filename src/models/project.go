@@ -1,6 +1,6 @@
 package models
 
 type Project struct {
-	Title       string
-	Description string
+	Title       string `bson:"_title"`
+	Description string `bson:"_description"`
 }

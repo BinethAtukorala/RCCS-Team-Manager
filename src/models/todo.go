@@ -3,12 +3,12 @@ package models
 import "time"
 
 type TODO struct {
-	Title       string
-	Description string
-	Project     Project
-	Deadline    time.Time
-	Members     []Member
-	SubTasks    []Task
+	Title       string    `bson:"_title"`
+	Description string    `bson:"_description"`
+	Project     Project   `bson:"_projects"`
+	Deadline    time.Time `bson:"_deadline"`
+	Members     []Member  `bson:"_members"`
+	SubTasks    []Task    `bson:"_subtasks"`
 }
 
 func (todo *TODO) IsMemberAssigned(member Member) bool {
