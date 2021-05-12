@@ -3,14 +3,23 @@ package main
 import (
 	"crypto/tls"
 	"github.com/joho/godotenv"
+	"github.com/op/go-logging"
 	"gopkg.in/mgo.v2"
 	"log"
 	"net"
 	"os"
+	"rccs_team_manager/api"
 	"strings"
 )
 
 func main() {
+
+	// set up logging start
+	var format = logging.MustStringFormatter(
+		`%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
+	)
+	logging.SetFormatter(format)
+	// set up logging end
 
 	// load .env
 	if err := godotenv.Load(".env"); err != nil {
@@ -37,4 +46,11 @@ func main() {
 	session.SetMode(mgo.Monotonic, true)
 	// db setup end
 
+	api_server := api.Server{
+		Addr: os.Getenv("rtm_addr"),
+		GetStatus: func() string {
+			return "{\"status\": \"OK\"}"
+		},
+	}
+	log.Fatalln(api_server.Start())
 }
