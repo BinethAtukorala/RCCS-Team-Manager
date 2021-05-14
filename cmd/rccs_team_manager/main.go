@@ -51,6 +51,7 @@ func main() {
 		GetStatus: func() string {
 			return "{\"status\": \"OK\"}"
 		},
+		DB: session.DB(os.Getenv("rtm_database_name")),
 	}
 	log.Fatalln(api_server.Start())
 }
