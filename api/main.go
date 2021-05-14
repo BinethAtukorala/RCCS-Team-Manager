@@ -20,6 +20,8 @@ func (s *Server) handleRequests() error {
 	http.HandleFunc("/api/status", handlers.ProvideStatusHandler(s.GetStatus))
 	http.HandleFunc("/api/todo/create", handlers.ProvideCreateTodoHandler(s.DB))
 	http.HandleFunc("/api/todo/get/assigned", handlers.ProvideGetAssignedTodoHandler(s.DB))
+	http.HandleFunc("/api/todo/get/title", handlers.ProvideGetTitleTodoHandler(s.DB))
+	http.HandleFunc("/api/todo/get/project", handlers.ProvideGetProjectTodoHandler(s.DB))
 
 	return http.ListenAndServe(s.Addr, nil)
 }
