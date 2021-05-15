@@ -25,7 +25,6 @@ func ProvideGetAssignedTodoHandler(database *mgo.Database) func(w http.ResponseW
 				log.Infof("Invalid format: ", err)
 				return
 			}
-			println("a " + decodedTodo.DiscordId)
 			var returnTodo []models.TODO
 
 			err = db_utils.GetAssignedTODO(models.Member{
