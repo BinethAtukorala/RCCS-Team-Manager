@@ -1,0 +1,1 @@
+This directory contains handlers for endpoints. These are registered at api/main.go 
