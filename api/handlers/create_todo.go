@@ -15,14 +15,14 @@ func ProvideCreateTodoHandler(database *mgo.Database) func(w http.ResponseWriter
 
 		err := json.NewDecoder(r.Body).Decode(&decodedTodo)
 		if err != nil {
-			fmt.Fprintf(w, "Invalid format")
+			_, _ = fmt.Fprintf(w, "Invalid format")
 			log.Infof("Invalid format: ", err)
 			return
 		}
 		log.Infof("new todo %s:%s", decodedTodo.Title, decodedTodo.Description)
 		err = db_utils.AddTodo(decodedTodo, database)
 		if err != nil {
-			fmt.Fprintf(w, "Database err")
+			_, _ = fmt.Fprintf(w, "Database err")
 			log.Infof("Database error: ", err)
 			return
 		}
