@@ -19,25 +19,25 @@ func ProvideGetProjectTodoHandler(database *mgo.Database) func(w http.ResponseWr
 
 		err := json.NewDecoder(r.Body).Decode(&decodedRequest)
 		if err != nil {
-			fmt.Fprintf(w, "Invalid format")
+			_, _ = fmt.Fprintf(w, "Invalid format")
 			log.Infof("Invalid format: ", err)
 			return
 		}
 		var returnTodo []models.TODO
 		err = db_utils.GetTODObyProject(decodedRequest.Name, database).All(&returnTodo)
 		if err != nil {
-			fmt.Fprintf(w, "DB error")
+			_, _ = fmt.Fprintf(w, "DB error")
 			log.Infof("DB error: ", err)
 			return
 		}
 
 		marshaledTodos, err := json.Marshal(returnTodo)
 		if err != nil {
-			fmt.Fprintf(w, "Cant marshal data")
+			_, _ = fmt.Fprintf(w, "Cant marshal data")
 			log.Infof("Cant marshal data: ", err)
 			return
 		}
-		fmt.Fprintf(w, string(marshaledTodos))
+		_, _ = fmt.Fprintf(w, string(marshaledTodos))
 		log.Infof("Endpoint Hit: /api/todo/get/project")
 	}
 }
