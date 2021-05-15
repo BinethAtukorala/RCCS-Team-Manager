@@ -24,25 +24,25 @@ func ProvideGetAssignedTodoHandler(database *mgo.Database) func(w http.ResponseW
 			return
 		}
 		println("a " + decodedTodo.DiscordId)
-		var return_todo []models.TODO
+		var returnTodo []models.TODO
 
 		err = db_utils.GetAssignedTODO(models.Member{
 			Name:      "",
 			DiscordId: decodedTodo.DiscordId,
-		}, database).All(&return_todo)
+		}, database).All(&returnTodo)
 		if err != nil {
 			fmt.Fprintf(w, "DB error")
 			log.Infof("DB error: ", err)
 			return
 		}
 
-		marshaled_todos, err := json.Marshal(return_todo)
+		marshaledTodos, err := json.Marshal(returnTodo)
 		if err != nil {
 			fmt.Fprintf(w, "Cant marshal data")
 			log.Infof("Cant marshal data: ", err)
 			return
 		}
-		fmt.Fprintf(w, string(marshaled_todos))
+		fmt.Fprintf(w, string(marshaledTodos))
 		log.Infof("Endpoint Hit: /api/todo/get/assigned")
 	}
 }

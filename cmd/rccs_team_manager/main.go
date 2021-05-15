@@ -46,12 +46,12 @@ func main() {
 	session.SetMode(mgo.Monotonic, true)
 	// db setup end
 
-	api_server := api.Server{
+	apiServer := api.Server{
 		Addr: os.Getenv("rtm_addr"),
 		GetStatus: func() string {
 			return "{\"status\": \"OK\"}"
 		},
 		DB: session.DB(os.Getenv("rtm_database_name")),
 	}
-	log.Fatalln(api_server.Start())
+	log.Fatalln(apiServer.Start())
 }
