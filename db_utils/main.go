@@ -17,3 +17,17 @@ func GetAssignedTODO(member models.Member, database *mgo.Database) *mgo.Query {
 		},
 	})
 }
+
+// returns a todos by title
+func GetTODObyTitle(todoTitle string, database *mgo.Database) *mgo.Query {
+	return database.C("todo").Find(bson.M{
+		"_title": todoTitle,
+	})
+}
+
+// returns a todos by title
+func GetTODObyProject(projectName string, database *mgo.Database) *mgo.Query {
+	return database.C("todo").Find(bson.M{
+		"_project": projectName,
+	})
+}
