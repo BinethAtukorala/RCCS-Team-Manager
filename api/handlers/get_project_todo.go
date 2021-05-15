@@ -15,29 +15,34 @@ type getProjectTodoRequest struct {
 
 func ProvideGetProjectTodoHandler(database *mgo.Database) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var decodedRequest getProjectTodoRequest
+		if r.Method == "GET" {
 
-		err := json.NewDecoder(r.Body).Decode(&decodedRequest)
-		if err != nil {
-			_, _ = fmt.Fprintf(w, "Invalid format")
-			log.Infof("Invalid format: ", err)
-			return
-		}
-		var returnTodo []models.TODO
-		err = db_utils.GetTODObyProject(decodedRequest.Name, database).All(&returnTodo)
-		if err != nil {
-			_, _ = fmt.Fprintf(w, "DB error")
-			log.Infof("DB error: ", err)
-			return
-		}
+			var decodedRequest getProjectTodoRequest
 
-		marshaledTodos, err := json.Marshal(returnTodo)
-		if err != nil {
-			_, _ = fmt.Fprintf(w, "Cant marshal data")
-			log.Infof("Cant marshal data: ", err)
-			return
+			err := json.NewDecoder(r.Body).Decode(&decodedRequest)
+			if err != nil {
+				_, _ = fmt.Fprintf(w, "Invalid format")
+				log.Infof("Invalid format: ", err)
+				return
+			}
+			var returnTodo []models.TODO
+			err = db_utils.GetTODObyProject(decodedRequest.Name, database).All(&returnTodo)
+			if err != nil {
+				_, _ = fmt.Fprintf(w, "DB error")
+				log.Infof("DB error: ", err)
+				return
+			}
+
+			marshaledTodos, err := json.Marshal(returnTodo)
+			if err != nil {
+				_, _ = fmt.Fprintf(w, "Cant marshal data")
+				log.Infof("Cant marshal data: ", err)
+				return
+			}
+			_, _ = fmt.Fprintf(w, string(marshaledTodos))
+			log.Infof("Endpoint Hit: /api/todo/get/project")
+		} else {
+			_, _ = fmt.Fprintf(w, "Invalid Method")
 		}
-		_, _ = fmt.Fprintf(w, string(marshaledTodos))
-		log.Infof("Endpoint Hit: /api/todo/get/project")
 	}
 }

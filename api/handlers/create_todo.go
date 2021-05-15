@@ -11,22 +11,26 @@ import (
 
 func ProvideCreateTodoHandler(database *mgo.Database) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var decodedTodo models.TODO
+		if r.Method == "POST" {
+			var decodedTodo models.TODO
 
-		err := json.NewDecoder(r.Body).Decode(&decodedTodo)
-		if err != nil {
-			_, _ = fmt.Fprintf(w, "Invalid format")
-			log.Infof("Invalid format: ", err)
-			return
-		}
-		log.Infof("new todo %s:%s", decodedTodo.Title, decodedTodo.Description)
-		err = db_utils.AddTodo(decodedTodo, database)
-		if err != nil {
-			_, _ = fmt.Fprintf(w, "Database err")
-			log.Infof("Database error: ", err)
-			return
-		}
+			err := json.NewDecoder(r.Body).Decode(&decodedTodo)
+			if err != nil {
+				_, _ = fmt.Fprintf(w, "Invalid format")
+				log.Infof("Invalid format: ", err)
+				return
+			}
+			log.Infof("new todo %s:%s", decodedTodo.Title, decodedTodo.Description)
+			err = db_utils.AddTodo(decodedTodo, database)
+			if err != nil {
+				_, _ = fmt.Fprintf(w, "Database err")
+				log.Infof("Database error: ", err)
+				return
+			}
 
-		log.Infof("Endpoint Hit: /api/todo/create")
+			log.Infof("Endpoint Hit: /api/todo/create")
+		} else {
+			_, _ = fmt.Fprintf(w, "Invalid Method")
+		}
 	}
 }
