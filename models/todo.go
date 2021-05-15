@@ -9,6 +9,7 @@ type TODO struct {
 	Deadline    time.Time `bson:"_deadline"`
 	Members     []Member  `bson:"_members"`
 	SubTasks    []Task    `bson:"_subtasks"`
+	CreatedBy   string    `bson:"_createdby"`
 }
 
 func (todo *TODO) IsMemberAssigned(member Member) bool {
