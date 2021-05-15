@@ -31,3 +31,10 @@ func GetTODObyProject(projectName string, database *mgo.Database) *mgo.Query {
 		"_project": projectName,
 	})
 }
+
+// returns a todos by creator
+func GetTODObyCreator(creator string, database *mgo.Database) *mgo.Query {
+	return database.C("todo").Find(bson.M{
+		"_creator": creator,
+	})
+}
