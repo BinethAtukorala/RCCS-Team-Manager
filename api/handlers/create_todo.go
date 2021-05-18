@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"gopkg.in/mgo.v2"
 	"net/http"
 	"rccs_team_manager/db_utils"
@@ -16,21 +15,21 @@ func ProvideCreateTodoHandler(database *mgo.Database) func(w http.ResponseWriter
 
 			err := json.NewDecoder(r.Body).Decode(&decodedTodo)
 			if err != nil {
-				_, _ = fmt.Fprintf(w, "Invalid format")
+				w.WriteHeader(http.StatusBadRequest)
 				log.Infof("Invalid format: ", err)
 				return
 			}
 			log.Infof("new todo %s:%s", decodedTodo.Title, decodedTodo.Description)
 			err = db_utils.AddTodo(decodedTodo, database)
 			if err != nil {
-				_, _ = fmt.Fprintf(w, "Database err")
+				w.WriteHeader(http.StatusBadRequest)
 				log.Infof("Database error: ", err)
 				return
 			}
-
+			w.WriteHeader(http.StatusCreated)
 			log.Infof("Endpoint Hit: /api/todo/create")
 		} else {
-			_, _ = fmt.Fprintf(w, "Invalid Method")
+			w.WriteHeader(http.StatusBadRequest)
 		}
 	}
 }
