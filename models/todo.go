@@ -10,6 +10,7 @@ type TODO struct {
 	Members     []Member  `bson:"_members"`
 	SubTasks    []Task    `bson:"_subtasks"`
 	Creator     string    `bson:"_creator"`
+	Done        bool      `bson:"_done"`
 }
 
 func (todo *TODO) IsMemberAssigned(member Member) bool {
